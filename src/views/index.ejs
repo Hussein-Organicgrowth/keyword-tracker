@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Company Tracker</title>
+</head>
+<body>
+  <h1>Company Tracker</h1>
+
+  <!-- Form to add a new company -->
+  <!-- Form to add a new company -->
+<form action="/add-company" method="POST">
+    <label for="companyName">Company Name:</label>
+    <input type="text" id="companyName" name="companyName" required>
+  
+    <label for="domain">Domain:</label>
+    <input type="text" id="domain" name="domain" required>
+  
+    <input type="submit" value="Add Company">
+  </form>
+
+  <!-- Table to display all companies -->
+  <table>
+    <thead>
+      <tr>
+        <th>Company Name</th>
+        <th>Number of Keywords</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% companies.forEach(function(company) { %>
+        <tr>
+          <td><%= company.companyName %></td>
+          <td><%= company.keywords.length %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</body>
+</html>
