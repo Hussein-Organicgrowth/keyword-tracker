@@ -1,0 +1,15 @@
+{
+  "name": "og-keywordtracker",
+  "version": "1.0.0",
+  "description": "Dette er et keyword tracker til organic growth ",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Hussein Ali",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
