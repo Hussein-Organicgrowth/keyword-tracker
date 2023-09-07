@@ -121,7 +121,7 @@ async function findRankingForDomain(keyword, domain) {
 
             } else {
                 console.log("Breaking the while loop because there are no more results or pages to show after trying to scroll.");
-                return 100;
+                return -1;
               break; // No more results or pages to show after trying to scroll
             }
           }

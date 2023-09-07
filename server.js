@@ -28,8 +28,22 @@ app.post('/add-company', async (req, res) => {
     // Redirect back to the home page
     res.redirect('/');
   } catch (err) {
+    if (err.code === 11000) {
+      // Duplicate company detected
+      return res.status(500).send('Duplicate company detected');
+    }
     console.error(err);
     res.status(500).send('An error occurred while saving the company');
+  }
+});
+
+app.delete('/delete-company/:name', async (req, res) => {
+  try {
+    await Company.findOneAndRemove({ companyName: req.params.name });
+    res.status(200).send('Company deleted');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('An error occurred while deleting the company');
   }
 });
 app.get('/findRanking', async (req, res) => {
@@ -48,6 +62,69 @@ app.get('/findRanking', async (req, res) => {
     res.status(500).send('An error occurred');
   }
 });
+app.get('/keywords/:companyName', async (req, res) => {
+  const companyName = req.params.companyName;
+  const company = await Company.findOne({ companyName: companyName });
+  res.render('keywords', { company: company });
+});
+async function getRanking(keyword, domain) {
+  let ranking = -1;
+
+  while (ranking === -1) {
+    ranking = await findRankingForDomain(keyword, domain);
+  }
+
+  return ranking;
+}
+app.post('/add-keyword/:companyName', async (req, res) => {
+  const companyName = req.params.companyName;
+  const keywords = req.body.keywords.split('\n');
+  const category = req.body.category;
+  const date = new Date(); // get current date
+
+  // Validation checks
+  if (!companyName) {
+    return res.status(400).send('Missing company name');
+  }
+  if (!keywords) {
+    return res.status(400).send('Missing keywords');
+  }
+
+  const company = await Company.findOne({ companyName: companyName });
+
+  // Check if company exists
+  if (!company) {
+    return res.status(404).send('Company not found');
+  }
+
+  // Get the domain from the company object
+  const domain = company.domain;
+
+  // Loop through each keyword
+  for (const keyword of keywords) {
+    // Get the ranking for the keyword
+    const rank = await getRanking(keyword, domain);
+
+    // Create a new placement
+    const newPlacement = {
+      date: date,
+      rank: rank
+    };
+
+    // Create a new keyword object
+    const newKeyword = {
+      keyword: keyword,
+      category: category,
+      placements: [newPlacement], // include new placement in placements array
+      lastChecked: date
+    };
+
+    company.keywords.push(newKeyword);
+  }
+
+  await company.save();
+  res.redirect('/keywords/' + companyName);
+});
 
 app.get('/', async (req, res) => {
   // Fetch the companies from the database
@@ -61,6 +138,69 @@ app.get('/', async (req, res) => {
   }
 });
 
+app.post('/delete-keyword/:companyName/:keyword', async (req, res) => {
+  const companyName = req.params.companyName;
+  const keyword = req.params.keyword;
+
+  const company = await Company.findOne({ companyName: companyName });
+
+  // Check if company exists
+  if (!company) {
+    return res.status(404).send('Company not found');
+  }
+
+  // Find the keyword to delete
+  const keywordIndex = company.keywords.findIndex(k => k.keyword === keyword);
+
+  // Check if keyword exists
+  if (keywordIndex === -1) {
+    return res.status(404).send('Keyword not found');
+  }
+
+  // Remove the keyword
+  company.keywords.splice(keywordIndex, 1);
+  await company.save();
+
+  res.redirect('/keywords/' + companyName);
+});
+
+app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
+  const companyName = req.params.companyName;
+  const keyword = req.params.keyword;
+  const date = new Date(); // get current date
+
+  const company = await Company.findOne({ companyName: companyName });
+
+  // Check if company exists
+  if (!company) {
+    return res.status(404).send('Company not found');
+  }
+
+  // Find the keyword to update
+  const keywordObj = company.keywords.find(k => k.keyword === keyword);
+
+  // Check if keyword exists
+  if (!keywordObj) {
+    return res.status(404).send('Keyword not found');
+  }
+
+  // Get the ranking for the keyword
+  const rank = await getRanking(keyword, company.domain);
+
+  // Create a new placement
+  const newPlacement = {
+    date: date,
+    rank: rank
+  };
+
+  // Update the placements array and lastChecked date
+  keywordObj.placements.push(newPlacement);
+  keywordObj.lastChecked = date;
+
+  await company.save();
+
+  res.redirect('/keywords/' + companyName);
+});
 
 
 // Connect to the database
@@ -73,23 +213,7 @@ db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", async function () {
   console.log("Connected to MongoDB!");
 
-  // Create a new company
-  const newCompany = new Company({
-    companyName: 'My Company',
-    domain: 'mycompany.com',
-    keywords: [
-      { keyword: 'keyword1', rank: 1, lastChecked: new Date() },
-      // more keywords...
-    ],
-  });
-
-  // Save the new company
-  try {
-    const savedCompany = await newCompany.save();
-    console.log('Company saved:', savedCompany);
-  } catch (err) {
-    console.error(err);
-  }
+  
 });
 
 app.get('/', (req, res) => {

@@ -3,8 +3,8 @@ const KeywordSchema = require('./keywordModel');
 const Schema = mongoose.Schema;
 
 const CompanySchema = new Schema({
-  companyName: String,
-  domain: String,
+  companyName: { type: String, unique: true },
+  domain: { type: String, unique: true },
   keywords: [KeywordSchema],
 });
 

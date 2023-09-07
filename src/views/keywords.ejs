@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Keywords for <%= company.companyName %></title>
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <!-- Include Font Awesome for icons -->
+  <script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">Keywords for <%= company.companyName %></h1>
+<!-- Button to open the modal -->
+<button type="button" class="btn btn-primary mb-5" data-toggle="modal" data-target="#addKeywordModal">
+    Add Keywords
+  </button>
+
+  <!-- Modal -->
+  <div class="modal fade" id="addKeywordModal" tabindex="-1" role="dialog" aria-labelledby="addKeywordModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addKeywordModalLabel">Add Keywords</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Form to add new keywords -->
+          <form action="/add-keyword/<%= company.companyName %>" method="POST">
+            <div class="form-group">
+                <label for="keywords">Keywords (one per line):</label>
+                <textarea id="keywords" name="keywords" class="form-control" required></textarea>
+              </div>
+            <div class="form-group">
+              <label for="category">Category:</label>
+              <input type="text" id="category" name="category" class="form-control" required>
+            </div>
+            <input type="submit" value="Add Keywords" class="btn btn-primary">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+    <!-- Table of keywords -->
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Keyword</th>
+          <th>Last Checked Date</th>
+          <th>Last Checked Rank</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% company.keywords.forEach(function(keywordObj, index) { %>
+          <tr>
+            <td><%= keywordObj.keyword %></td>
+            <% if (keywordObj.placements && keywordObj.placements.length > 0) { %>
+              <td><%= keywordObj.placements[keywordObj.placements.length - 1].date.toDateString() %></td>
+              <td><%= keywordObj.placements[keywordObj.placements.length - 1].rank %></td>
+            <% } else { %>
+              <td>No placements yet</td>
+              <td>No placements yet</td>
+            <% } %>
+            <td>
+              <!-- Update button -->
+              <form action="/update-keyword/<%= company.companyName %>/<%= keywordObj.keyword %>" method="POST" style="display: inline;">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-sync"></i>
+                </button>
+              </form>
+              <!-- Delete button -->
+              <form action="/delete-keyword/<%= company.companyName %>/<%= keywordObj.keyword %>" method="POST" style="display: inline;">
+                <button class="btn btn-danger" type="submit">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+
+  <!-- Include Bootstrap JS -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+</body>
+</html>
