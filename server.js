@@ -26,6 +26,7 @@ app.post('/add-company', async (req, res) => {
   try {
     await newCompany.save();
     // Redirect back to the home page
+    console.log("Test");
     res.redirect('/');
   } catch (err) {
     if (err.code === 11000) {
