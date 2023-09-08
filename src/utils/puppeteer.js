@@ -3,13 +3,13 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const { ElementHandle } = require('puppeteer');  // Import ElementHandle from 'puppeteer'
 
 puppeteer.use(StealthPlugin());
-async function findRankingForDomain(keyword, domain) {
+async function findRankingForDomain(keyword, domain, languageCode) {
     const simplifiedDomain = simplifyUrl(domain);
     let position = 0;
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     
-    await page.goto("https://www.google.com");
+    await page.goto(`https://www.google.com?hl=${languageCode}`);
     
     const content = await page.content();
     
@@ -85,6 +85,10 @@ async function findRankingForDomain(keyword, domain) {
   
         if (!found) {
           pageTal++;
+          if(pageTal >= 10){
+            return 100;
+            
+          }
           let pageString = "Page " + pageTal;
           const nextPageLink = await page.$(`a[aria-label="${pageString}"].fl`);
           console.log("NEXTPAGELINK: " + nextPageLink);

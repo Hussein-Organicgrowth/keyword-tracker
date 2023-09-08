@@ -26,7 +26,6 @@ app.post('/add-company', async (req, res) => {
   try {
     await newCompany.save();
     // Redirect back to the home page
-    console.log("Test");
     res.redirect('/');
   } catch (err) {
     if (err.code === 11000) {
@@ -47,6 +46,9 @@ app.delete('/delete-company/:name', async (req, res) => {
     res.status(500).send('An error occurred while deleting the company');
   }
 });
+
+
+
 app.get('/findRanking', async (req, res) => {
   const keyword = req.query.keyword;
   const domain = req.query.domain;
@@ -63,16 +65,20 @@ app.get('/findRanking', async (req, res) => {
     res.status(500).send('An error occurred');
   }
 });
+
+
 app.get('/keywords/:companyName', async (req, res) => {
   const companyName = req.params.companyName;
   const company = await Company.findOne({ companyName: companyName });
-  res.render('keywords', { company: company });
+  const categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))];
+
+  res.render('keywords', { company: company, languages: languages, categories: categories });
 });
-async function getRanking(keyword, domain) {
+async function getRanking(keyword, domain, languageCode) {
   let ranking = -1;
 
   while (ranking === -1) {
-    ranking = await findRankingForDomain(keyword, domain);
+    ranking = await findRankingForDomain(keyword, domain, languageCode);
   }
 
   return ranking;
@@ -81,6 +87,7 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   const companyName = req.params.companyName;
   const keywords = req.body.keywords.split('\n');
   const category = req.body.category;
+  const languageCode = req.body.language; // Get the selected language code
   const date = new Date(); // get current date
 
   // Validation checks
@@ -100,11 +107,11 @@ app.post('/add-keyword/:companyName', async (req, res) => {
 
   // Get the domain from the company object
   const domain = company.domain;
-
+  
   // Loop through each keyword
   for (const keyword of keywords) {
     // Get the ranking for the keyword
-    const rank = await getRanking(keyword, domain);
+    const rank = await getRanking(keyword, domain, languageCode);
 
     // Create a new placement
     const newPlacement = {
@@ -116,6 +123,7 @@ app.post('/add-keyword/:companyName', async (req, res) => {
     const newKeyword = {
       keyword: keyword,
       category: category,
+      language: languageCode, // Include the language code
       placements: [newPlacement], // include new placement in placements array
       lastChecked: date
     };
@@ -124,6 +132,23 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   }
 
   await company.save();
+  res.redirect('/keywords/' + companyName);
+});
+
+app.post('/delete-category/:companyName/:category', async (req, res) => {
+  const companyName = req.params.companyName;
+  const category = req.params.category;
+
+  // Find the company
+  const company = await Company.findOne({ companyName: companyName });
+
+  // Filter out the keywords of the category
+  company.keywords = company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() !== category);
+
+  // Save the changes
+  await company.save();
+
+  // Redirect back to the keywords page
   res.redirect('/keywords/' + companyName);
 });
 
@@ -168,6 +193,8 @@ app.post('/delete-keyword/:companyName/:keyword', async (req, res) => {
 app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
   const companyName = req.params.companyName;
   const keyword = req.params.keyword;
+  console.log(keyword);
+  console.log(companyName);
   const date = new Date(); // get current date
 
   const company = await Company.findOne({ companyName: companyName });
@@ -185,6 +212,7 @@ app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
     return res.status(404).send('Keyword not found');
   }
 
+
   // Get the ranking for the keyword
   const rank = await getRanking(keyword, company.domain);
 
@@ -193,14 +221,30 @@ app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
     date: date,
     rank: rank
   };
-
+  
   // Update the placements array and lastChecked date
   keywordObj.placements.push(newPlacement);
   keywordObj.lastChecked = date;
 
+  // Save the changes
+  await company.markModified('keywords');
   await company.save();
 
   res.redirect('/keywords/' + companyName);
+});
+
+app.get('/get-placements/:companyName/:keyword', async function(req, res) {
+  var companyName = req.params.companyName;
+  var keyword = req.params.keyword;
+  const company = await Company.findOne({ companyName: companyName });
+
+  const keywordObj = company.keywords.find(k => k.keyword === keyword);
+  if(keywordObj){
+    res.json(keywordObj.placements);
+  }else{
+    res.status(404).send('Keyword not found');
+  }
+ 
 });
 
 
@@ -239,3 +283,61 @@ app.listen(port, () => {
 //    - js: This folder contains the JavaScript files for your application.
 
 // Note: This is just a suggested structure. You can modify it according to your needs.
+const languages = [
+  { name: 'Amharic', code: 'am' },
+  { name: 'Arabic', code: 'ar' },
+  { name: 'Basque', code: 'eu' },
+  { name: 'Bengali', code: 'bn' },
+  { name: 'English (UK)', code: 'en-GB' },
+  { name: 'Portuguese (Brazil)', code: 'pt-BR' },
+  { name: 'Bulgarian', code: 'bg' },
+  { name: 'Catalan', code: 'ca' },
+  { name: 'Cherokee', code: 'chr' },
+  { name: 'Croatian', code: 'hr' },
+  { name: 'Czech', code: 'cs' },
+  { name: 'Danish', code: 'da' },
+  { name: 'Dutch', code: 'nl' },
+  { name: 'English (US)', code: 'en' },
+  { name: 'Estonian', code: 'et' },
+  { name: 'Filipino', code: 'fil' },
+  { name: 'Finnish', code: 'fi' },
+  { name: 'French', code: 'fr' },
+  { name: 'German', code: 'de' },
+  { name: 'Greek', code: 'el' },
+  { name: 'Gujarati', code: 'gu' },
+  { name: 'Hebrew', code: 'iw' },
+  { name: 'Hindi', code: 'hi' },
+  { name: 'Hungarian', code: 'hu' },
+  { name: 'Icelandic', code: 'is' },
+  { name: 'Indonesian', code: 'id' },
+  { name: 'Italian', code: 'it' },
+  { name: 'Japanese', code: 'ja' },
+  { name: 'Kannada', code: 'kn' },
+  { name: 'Korean', code: 'ko' },
+  { name: 'Latvian', code: 'lv' },
+  { name: 'Lithuanian', code: 'lt' },
+  { name: 'Malay', code: 'ms' },
+  { name: 'Malayalam', code: 'ml' },
+  { name: 'Marathi', code: 'mr' },
+  { name: 'Norwegian', code: 'no' },
+  { name: 'Polish', code: 'pl' },
+  { name: 'Portuguese (Portugal)', code: 'pt-PT' },
+  { name: 'Romanian', code: 'ro' },
+  { name: 'Russian', code: 'ru' },
+  { name: 'Serbian', code: 'sr' },
+  { name: 'Chinese (PRC)', code: 'zh-CN' },
+  { name: 'Slovak', code: 'sk' },
+  { name: 'Slovenian', code: 'sl' },
+  { name: 'Spanish', code: 'es' },
+  { name: 'Swahili', code: 'sw' },
+  { name: 'Swedish', code: 'sv' },
+  { name: 'Tamil', code: 'ta' },
+  { name: 'Telugu', code: 'te' },
+  { name: 'Thai', code: 'th' },
+  { name: 'Chinese (Taiwan)', code: 'zh-TW' },
+  { name: 'Turkish', code: 'tr' },
+  { name: 'Urdu', code: 'ur' },
+  { name: 'Ukrainian', code: 'uk' },
+  { name: 'Vietnamese', code: 'vi' },
+  { name: 'Welsh', code: 'cy' }
+];
