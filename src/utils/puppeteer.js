@@ -1,13 +1,23 @@
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const { ElementHandle } = require('puppeteer');  // Import ElementHandle from 'puppeteer'
+const { find } = require("../models/companyModel");
 
 puppeteer.use(StealthPlugin());
+
+
 async function findRankingForDomain(keyword, domain, languageCode) {
     const simplifiedDomain = simplifyUrl(domain);
     let position = 0;
-    const browser = await puppeteer.launch({ headless: true });
+    const proxyServer = 'la.residential.rayobyte.com:8000'; // Your proxy server
+    const proxyUsername = 'ha_organicgrowth_dk'; // Your proxy username
+    const proxyPassword = 'Hussein123'; //
+    const browser = await puppeteer.launch({
+    //  args: ['--no-sandbox', `--proxy-server=${proxyServer}`],
+      headless: false
+    })
     const page = await browser.newPage();
+    //await page.authenticate({username: proxyUsername, password: proxyPassword});
     
     await page.goto(`https://www.google.com?hl=${languageCode}`);
     
@@ -15,12 +25,14 @@ async function findRankingForDomain(keyword, domain, languageCode) {
     
     try {
       // Waiting for the cookie banner to load
-      const buttonText =
+      try {
+        const buttonText =
         process.env.NODE_ENV === "production"
           ? '[aria-label="Alle akzeptieren"]'
           : '[aria-label="Acceptér alle"]';
       
-      await page.waitForSelector(".QS5gu.sy4vM");
+          await page.waitForSelector(".QS5gu.sy4vM", { timeout: 5000 }); // Wait for 5 seconds
+
        // wait for the element to appear on the page
       const acceptButton = await page.$x(
         "//div[contains(@class, 'QS5gu') and contains(@class, 'sy4vM') and contains(text(), 'Acceptér alle')]"
@@ -30,6 +42,10 @@ async function findRankingForDomain(keyword, domain, languageCode) {
         await acceptButton[0].click();
         console.log("Clicked the cookie banner");
       }
+      }catch (e){
+        console.log(e);
+      }
+      console.log("DIDN't find a cookiebanner");
       
       await page.waitForSelector("textarea[name=q]");
      

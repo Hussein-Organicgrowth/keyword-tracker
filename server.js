@@ -5,10 +5,14 @@ const mongoose = require("mongoose");
 const path = require('path');
 const bodyParser = require('body-parser');
 const Company = require('./src/models/companyModel');
-const findRankingForDomain = require('./src/utils/puppeteer'); // import your function
+const findRankingForDomain = require('./src/utils/puppeteer');
+const getRank = require("./src/utils/getrank");
+var util = require('util');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
+
+
 
 // Route to handle form submission
 app.post('/add-company', async (req, res) => {
@@ -36,7 +40,6 @@ app.post('/add-company', async (req, res) => {
     res.status(500).send('An error occurred while saving the company');
   }
 });
-
 app.delete('/delete-company/:name', async (req, res) => {
   try {
     await Company.findOneAndRemove({ companyName: req.params.name });
@@ -58,7 +61,7 @@ app.get('/findRanking', async (req, res) => {
   }
 
   try {
-    const result = await findRankingForDomain(keyword, domain);
+    const result = await getRank(keyword, domain);
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -74,15 +77,14 @@ app.get('/keywords/:companyName', async (req, res) => {
 
   res.render('keywords', { company: company, languages: languages, categories: categories });
 });
-async function getRanking(keyword, domain, languageCode) {
-  let ranking = -1;
+app.get('/keywords-view/:companyName', async (req, res) => {
+  const companyName = req.params.companyName;
+  const company = await Company.findOne({ companyName: companyName });
+  const categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))];
 
-  while (ranking === -1) {
-    ranking = await findRankingForDomain(keyword, domain, languageCode);
-  }
+  res.render('keywords-view', { company: company, languages: languages, categories: categories });
+});
 
-  return ranking;
-}
 app.post('/add-keyword/:companyName', async (req, res) => {
   const companyName = req.params.companyName;
   const keywords = req.body.keywords.split('\n');
@@ -111,19 +113,21 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   // Loop through each keyword
   for (const keyword of keywords) {
     // Get the ranking for the keyword
-    const rank = await getRanking(keyword, domain, languageCode);
+    const rank = await getRank(keyword, domain);
 
     // Create a new placement
     const newPlacement = {
       date: date,
-      rank: rank
+      rank: rank.position,
+      url: rank.url
     };
 
     // Create a new keyword object
     const newKeyword = {
       keyword: keyword,
       category: category,
-      language: languageCode, // Include the language code
+      language: languageCode,
+      url: rank.url, // Include the language code
       placements: [newPlacement], // include new placement in placements array
       lastChecked: date
     };
@@ -214,12 +218,13 @@ app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
 
 
   // Get the ranking for the keyword
-  const rank = await getRanking(keyword, company.domain);
+  const rank = await getRank(keyword, company.domain);
 
   // Create a new placement
   const newPlacement = {
     date: date,
-    rank: rank
+    rank: rank.position,
+    url: rank.url
   };
   
   // Update the placements array and lastChecked date

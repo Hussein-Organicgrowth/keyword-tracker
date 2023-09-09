@@ -29,16 +29,28 @@
       <div class="col-md-6">
         <div class="card text-white bg-primary mb-3">
           <div class="card-body">
-            <h5 class="card-title">Average Position for All Keywords</h5>
+            <h5 class="card-title">Gennemsnitlig position for alle søgeord</h5>
             <p id="averagePosition" class="card-text display-4"></p>
+          </div>
+        </div>
+        <div class="card text-white bg-success mb-3">
+          <div class="card-body">
+            <h5 class="card-title">Bedste gennemsnitlige position for en kategori</h5>
+            <p id="bestAveragePosition" class="card-text display-4"></p>
           </div>
         </div>
       </div>
       <div class="col-md-6">
-        <div class="card text-white bg-success mb-3">
+        <div class="card text-white bg-info mb-3">
           <div class="card-body">
-            <h5 class="card-title">Best Average Position for a Category</h5>
-            <p id="bestAveragePosition" class="card-text display-4"></p>
+            <h5 class="card-title">Samlet antal søgeord</h5>
+            <p class="card-text display-4"><%= company.keywords.length %></p>
+          </div>
+        </div>
+        <div class="card text-white bg-danger mb-3">
+          <div class="card-body">
+            <h5 class="card-title">Dårligste gennemsnitlige position for en kategori</h5>
+            <p id="worstAveragePosition" class="card-text display-4"></p>
           </div>
         </div>
       </div>
@@ -117,6 +129,7 @@
               <tr>
                 <th>Søgeord</th>
                 <th>Sprog</th>
+                <th>URL</th>
                 <th>Sidst checket</th>
                 <th>Placering</th>
                 <th>opdater eller slet</th>
@@ -127,6 +140,7 @@
                   <tr>
                     <td class="keyword" data-keyword="<%= keywordObj.keyword %>" data-company="<%= company.companyName %>"><%= keywordObj.keyword %></td>
                     <td><%= keywordObj.language %></td>
+                    <td><a href="<%= keywordObj.url %>" target="_blank">/<%= keywordObj.url.replace(company.domain, '') %></a></td>
                     <% if (keywordObj.placements && keywordObj.placements.length > 0) { %>
                       <td><%= keywordObj.placements[keywordObj.placements.length - 1].date.toDateString() %></td>
                       <td><%= keywordObj.placements[keywordObj.placements.length - 1].rank %></td>
@@ -212,7 +226,25 @@
   });
   var averagePosition = totalRank / totalKeywords;
   $('#averagePosition').text(averagePosition.toFixed(2));
-
+  // Calculate the worst average position for a category
+var worstAveragePosition = -Infinity;
+var worstCategory = '';
+categories.forEach(function(category) {
+  var totalRank = 0;
+  var totalKeywords = 0;
+  company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() === category).forEach(function(keywordObj) {
+    keywordObj.placements.forEach(function(placement) {
+      totalRank += placement.rank;
+      totalKeywords++;
+    });
+  });
+  var averagePosition = totalRank / totalKeywords;
+  if (averagePosition > worstAveragePosition) {
+    worstAveragePosition = averagePosition;
+    worstCategory = category;
+  }
+});
+$('#worstAveragePosition').text(worstCategory + ': ' + worstAveragePosition.toFixed(2));
   // Calculate the best average position for a category
   var bestAveragePosition = Infinity;
   var bestCategory = '';
