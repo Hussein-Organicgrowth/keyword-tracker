@@ -6,7 +6,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const googleMaps = require('@google/maps');
-
+require('dotenv').config()
 
 const Company = require('./src/models/companyModel');
 const findRankingForDomain = require('./src/utils/puppeteer');
@@ -17,6 +17,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
 const crypto = require('crypto');
 
+const MONGO_URL = process.env.MONGO_URL;
+const GOOGLE_KEY = process.env.GOOGLE_KEY;
 
 
 // Route to handle form submission
@@ -83,7 +85,7 @@ geolocations.forEach(geo => {
 });
 
 const googleMapsClient = googleMaps.createClient({
-  key: 'AIzaSyCOaD0K1EXLGvqin8Sqo9V5STfNa2yGAeo',
+  key: GOOGLE_KEY,
   Promise: Promise
 });
 
@@ -329,7 +331,7 @@ app.get('/get-keyword-data', async (req, res) => {
 });
 
 // Connect to the database
-const uri = "mongodb+srv://hussein:admin@keywords.ze8giui.mongodb.net/?retryWrites=true&w=majority";
+const uri = MONGO_URL;
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const db = mongoose.connection;
@@ -363,61 +365,3 @@ app.listen(port, () => {
 //    - js: This folder contains the JavaScript files for your application.
 
 // Note: This is just a suggested structure. You can modify it according to your needs.
-const languages = [
-  { name: 'Amharic', code: 'am' },
-  { name: 'Arabic', code: 'ar' },
-  { name: 'Basque', code: 'eu' },
-  { name: 'Bengali', code: 'bn' },
-  { name: 'English (UK)', code: 'en-GB' },
-  { name: 'Portuguese (Brazil)', code: 'pt-BR' },
-  { name: 'Bulgarian', code: 'bg' },
-  { name: 'Catalan', code: 'ca' },
-  { name: 'Cherokee', code: 'chr' },
-  { name: 'Croatian', code: 'hr' },
-  { name: 'Czech', code: 'cs' },
-  { name: 'Danish', code: 'da' },
-  { name: 'Dutch', code: 'nl' },
-  { name: 'English (US)', code: 'en' },
-  { name: 'Estonian', code: 'et' },
-  { name: 'Filipino', code: 'fil' },
-  { name: 'Finnish', code: 'fi' },
-  { name: 'French', code: 'fr' },
-  { name: 'German', code: 'de' },
-  { name: 'Greek', code: 'el' },
-  { name: 'Gujarati', code: 'gu' },
-  { name: 'Hebrew', code: 'iw' },
-  { name: 'Hindi', code: 'hi' },
-  { name: 'Hungarian', code: 'hu' },
-  { name: 'Icelandic', code: 'is' },
-  { name: 'Indonesian', code: 'id' },
-  { name: 'Italian', code: 'it' },
-  { name: 'Japanese', code: 'ja' },
-  { name: 'Kannada', code: 'kn' },
-  { name: 'Korean', code: 'ko' },
-  { name: 'Latvian', code: 'lv' },
-  { name: 'Lithuanian', code: 'lt' },
-  { name: 'Malay', code: 'ms' },
-  { name: 'Malayalam', code: 'ml' },
-  { name: 'Marathi', code: 'mr' },
-  { name: 'Norwegian', code: 'no' },
-  { name: 'Polish', code: 'pl' },
-  { name: 'Portuguese (Portugal)', code: 'pt-PT' },
-  { name: 'Romanian', code: 'ro' },
-  { name: 'Russian', code: 'ru' },
-  { name: 'Serbian', code: 'sr' },
-  { name: 'Chinese (PRC)', code: 'zh-CN' },
-  { name: 'Slovak', code: 'sk' },
-  { name: 'Slovenian', code: 'sl' },
-  { name: 'Spanish', code: 'es' },
-  { name: 'Swahili', code: 'sw' },
-  { name: 'Swedish', code: 'sv' },
-  { name: 'Tamil', code: 'ta' },
-  { name: 'Telugu', code: 'te' },
-  { name: 'Thai', code: 'th' },
-  { name: 'Chinese (Taiwan)', code: 'zh-TW' },
-  { name: 'Turkish', code: 'tr' },
-  { name: 'Urdu', code: 'ur' },
-  { name: 'Ukrainian', code: 'uk' },
-  { name: 'Vietnamese', code: 'vi' },
-  { name: 'Welsh', code: 'cy' }
-];
