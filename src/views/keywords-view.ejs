@@ -3,6 +3,8 @@
 <head>
   <title>Keywords for <%= company.companyName %></title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -89,20 +91,241 @@
       background-color: #dc3545;
       border-color: #dc3545;
     }
-    </style>
+    .category-name {
+    font-size: 40px;
+    font-weight: bold;
+    color: #3E503C;
+  }
+  .info-card {
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.info-card h4 {
+  font-size: 1.2em;
+  color: #3E503C;
+  margin-bottom: 10px;
+}
+
+.info-card p {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #3E503C;
+}
+.modal-content {
+    background-color: #f8f9fa;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  .modal-header {
+    border-bottom: none;
+  }
+
+  .modal-title {
+    color: #3E503C;
+    font-weight: bold;
+  }
+
+  .modal-body {
+    color: #3E503C;
+  }
+
+  .modal-body label {
+    font-weight: bold;
+  }
+
+  .modal-footer {
+    border-top: none;
+  }
+
+  .btn-primary {
+    background-color: #3E503C;
+    border-color: #3E503C;
+  }
+
+  .btn-secondary {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+  .modal-lg {
+    max-width: 80%; /* Change this to your preferred width */
+  }
+  .select2-container {
+  width: 100% !important;
+  margin-top: 15px;
+}
+    
+</style>
 </head>
 <body>
+  <% 
+  var categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))];
+  var categoryStats = {};
+  var bestAveragePosition = Infinity;
+  var worstAveragePosition = -Infinity;
+  var bestCategory = '';
+  var worstCategory = '';
+
+  categories.forEach(category => {
+    var totalPosition = 0;
+    var totalKeywords = 0;
+
+    company.keywords.forEach(keywordObj => {
+      if (keywordObj.category.toLowerCase().trim() === category) {
+        var lastPlacement = keywordObj.placements[keywordObj.placements.length - 1];
+        if (lastPlacement) {
+          var position = Number(lastPlacement.rank);
+          if (!isNaN(position)) {
+            totalPosition += position;
+            totalKeywords++;
+          }
+        }
+      }
+    });
+
+    var averagePosition = totalPosition / totalKeywords;
+    if (averagePosition < bestAveragePosition) {
+      bestAveragePosition = averagePosition;
+      bestCategory = category;
+    }
+    if (averagePosition > worstAveragePosition) {
+      worstAveragePosition = averagePosition;
+      worstCategory = category;
+    }
+
+    categoryStats[category] = {
+      averagePosition: averagePosition,
+      totalKeywords: totalKeywords
+    };
+  });
+%>
+<% 
+  var categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))];
+  var totalPosition = 0;
+  var totalKeywords = 0;
+
+  company.keywords.forEach(keywordObj => {
+    var lastPlacement = keywordObj.placements[keywordObj.placements.length - 1];
+    if (lastPlacement) {
+      var position = Number(lastPlacement.rank);
+      if (!isNaN(position)) {
+        totalPosition += position;
+        totalKeywords++;
+      }
+    }
+  });
+
+  var averagePosition = totalPosition / totalKeywords;
+%>
+
   <div class="container mt-5" id="accordionExample">
     <h1 class="text-center">Keywords for <%= company.companyName %></h1>
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="info-card">
+            <h4>Gennemsnitlig position</h4>
+            <p><%= averagePosition %></p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="info-card">
+            <h4>Antal søgeord</h4>
+            <p><%= company.keywords.length %></p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="info-card">
+            <h4>Bedste gennemsnitlige kategoriposition</h4>
+            <p style="font-size: 0.9em;"><%= bestCategory %></p>
+            <p><%= bestAveragePosition %></p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="info-card">
+            <h4>Dårligste gennemsnits kategoriposition</h4>
+            <p style="font-size: 0.9em;"><%= worstCategory %></p>
+            <p><%= worstAveragePosition %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#keywordModal">
+      Add Keyword
+    </button>
+    <div class="modal fade" id="keywordModal" tabindex="-1" role="dialog" aria-labelledby="keywordModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="keywordModalLabel">Add Keyword</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col">
+                <label for="keywords">Keywords</label>
+                <textarea class="form-control" id="keywords" rows="3"></textarea>
+                <h3 id="antal">Antal af søgeord: 0</h3>
+
+              </div>
+              <div class="col">
+                <label for="category" class="mt-3">Category</label>
+                <select class="form-control" id="category"></select>
+                <label for="country">Country</label>
+                <select class="form-control" id="country">
+                <% countrycodes.forEach(function(country) { %>
+                  <option value="<%= country.code %>"><%= country.name %></option>
+                <% }); %>
+              </select>
+
+              <label for="location" class="mt-3">Location (Optional)</label>
+              <select class="form-control" id="location"></select>
+
+
+              <label for="lang">Sprog</label>
+              <select class="form-control" id="lang">
+                <% langcodes.forEach(function(lang) { %>
+                  <option value="<%= lang.code %>"><%= lang.name %></option>
+                <% }); %>
+              </select>
+
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <% var categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))]; %>
     <% categories.forEach(function(category, index) { %>
       <div class="card mt-4">
         <div class="card-header" id="heading<%= index %>">
           <h2 class="mb-0">
-            <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse<%= index %>" aria-expanded="true" aria-controls="collapse<%= index %>">
+            <button class="btn btn-link category-name" type="button" data-toggle="collapse" data-target="#collapse<%= index %>" aria-expanded="true" aria-controls="collapse<%= index %>">
               <%= category.charAt(0).toUpperCase() + category.slice(1) %>
             </button>
+            <% 
+      var keywordCount = company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() === category).length;
+    %>
+    <span>| <%= keywordCount %> antal af søgeord</span>
+    <form class="btn btn-danger float-right" action="/delete-category/<%= company.companyName %>/<%= category %>" method="POST">
+    <button class="btn btn-danger float-right" type="submit">
+      <i class="fas fa-trash"></i> 
+    </button>
+  </form>
           </h2>
+
         </div>
         <div id="collapse<%= index %>" class="collapse" aria-labelledby="heading<%= index %>" data-parent="#accordionExample">
           <div class="card-body">
@@ -114,20 +337,49 @@
                     <th scope="col">URL</th>
                     <th scope="col">Last Checked</th>
                     <th scope="col">Placement</th>
+                    <th scope="col">Rank changes</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() === category).forEach(function(keywordObj) { %>
                     <tr>
-                      <td><%= keywordObj.keyword %></td>
+                      <td class="keyword" data-keyword="<%= keywordObj.keyword %>" data-company="<%= company.companyName %>"><%= keywordObj.keyword %></td>
+
                       <td><%= keywordObj.language %></td>
-                      <td><%= keywordObj.url %></td>
-                      <td><%= keywordObj.lastChecked %></td>
+                      <td><a href="<%= keywordObj.url %>" target="_blank">/<%= keywordObj.url.replace(company.domain, '') %></a></td>
+                      <td><%= keywordObj.lastChecked.toDateString() %></td>
                       <td><%= keywordObj.placements[keywordObj.placements.length - 1].rank %></td>
                       <td>
-                        <button class="btn btn-primary">Update</button>
-                        <button class="btn btn-danger">Delete</button>
+                        <% 
+                        var placements = keywordObj.placements;
+                        if (placements.length >= 2) {
+                          var lastPlacement = placements[placements.length - 1];
+                          var secondLastPlacement = placements[placements.length - 2];
+                          if (lastPlacement.rank < secondLastPlacement.rank) { %>
+                            <span class="text-success"><i class="fas fa-arrow-up"></i> <%= secondLastPlacement.rank - lastPlacement.rank %></span>
+                          <% } else if (lastPlacement.rank > secondLastPlacement.rank) { %>
+                            <span class="text-danger"><i class="fas fa-arrow-down"></i> <%= lastPlacement.rank - secondLastPlacement.rank %></span>
+                          <% } else { %>
+                            <span><i class="fas fa-minus"></i> No change</span>
+                          <% }
+                        } else { %>
+                          <span><i class="fas fa-question"></i> No previous data</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <!-- Delete button -->
+                        <form action="/update-keyword/<%= company.companyName %>/<%= keywordObj.keyword %>" method="POST" style="display: inline;">
+                          <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-sync"></i>
+                          </button>
+                        </form>
+                        <!-- Delete button -->
+                        <form action="/delete-keyword/<%= company.companyName %>/<%= keywordObj.keyword %>" method="POST" style="display: inline;">
+                          <button class="btn btn-danger" type="submit">
+                            <i class="fas fa-trash-alt"></i>
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   <% }); %>
@@ -138,7 +390,222 @@
       </div>
     <% }); %>
   </div>
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <div class="modal fade" id="placementsModal" tabindex="-1" role="dialog" aria-labelledby="placementsModalLabel" aria-hidden="true">
+    <div class="modal-dialog large-modal" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="placementsModalLabel">Keyword Placements</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+        
+        <canvas id="placementsChart" style="height: 100px;"></canvas>
+          
+          <table class="table table-striped" id="placementsTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Rank</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Placements will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  var chart;
+  Chart.register({
+id: 'backgroundColorPlugin',
+beforeDraw: function(chart) {
+  var ctx = chart.ctx;
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-over';
+  ctx.fillStyle = 'rgba(211, 211, 211, 0.3)'; // Light gray background
+  ctx.fillRect(0, 0, chart.width, chart.height);
+  ctx.restore();
+}
+});
+  $(document).ready(function() {
+    $('.keyword').click(function() {
+      var keyword = $(this).data('keyword');
+      var companyName = $(this).data('company');
+      $.ajax({
+        url: '/get-placements/' + encodeURIComponent(companyName) + '/' + encodeURIComponent(keyword),
+        method: 'GET',
+        success: function(placements) {
+$('#placementsTable tbody').empty();
+
+// Create an empty array to store unique dates
+var uniqueDates = [];
+
+// Filter placements to remove duplicates
+var uniquePlacements = placements.filter(function(placement) {
+  var date = new Date(placement.date).toLocaleDateString();
+  if (uniqueDates.indexOf(date) === -1) {
+    uniqueDates.push(date);
+    return true;
+  }
+  return false;
+});
+
+uniquePlacements.sort(function(a, b) {
+ return new Date(b.date) - new Date(a.date);
+});
+
+// Display unique placements
+uniquePlacements.forEach(function(placement) {
+var date = new Date(placement.date);
+var dateString = date.toLocaleDateString();
+var timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // 24-hour format without seconds
+$('#placementsTable tbody').append('<tr><td>' + dateString + ' ' + timeString + '</td><td>' + placement.rank + '</td></tr>');
+});
+
+ // Create arrays of dates and ranks
+ var dates = placements.map(function(placement) {
+  return new Date(placement.date).toLocaleDateString();
+});
+var ranks = placements.map(function(placement) {
+  return placement.rank;
+});
+
+if (chart) {
+  chart.destroy();
+}
+
+// Create a chart
+chart = new Chart(document.getElementById('placementsChart'), {
+type: 'line',
+data: {
+  labels: dates,
+  datasets: [{
+    label: 'Placering',
+    data: ranks,
+    fill: false,
+    borderColor: '#673AB7', // Deep purple line
+    backgroundColor: '#673AB7', // Deep purple points
+    pointBorderColor: '#fff', // White point borders
+    pointBackgroundColor: '#673AB7', // Deep purple points
+    pointHoverBackgroundColor: '#fff', // White hover color
+    pointHoverBorderColor: '#673AB7', // Deep purple hover border
+    borderWidth: 2
+  }]
+},
+options: {
+  responsive: true,
+  scales: {
+    y: {
+      reverse: true,
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(0, 0, 0, 0.1)',
+      },
+      ticks: {
+        color: '#666',
+      }
+    },
+    x: {
+      grid: {
+        color: 'rgba(0, 0, 0, 0.1)',
+      },
+      ticks: {
+        color: '#666',
+      }
+    }
+  },
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      intersect: false
+    }
+  },
+  hover: {
+    mode: 'nearest',
+    intersect: true
+  },
+  elements: {
+    line: {
+      tension: 0.4
+    }
+  },
+  backgroundColor: 'rgba(211, 211, 211, 0.3)' // Light gray background
+}
+});
+
+$('#placementsModal').modal('show');
+}
+      });
+    });
+  });
+</script>
+<script>
+
+let textarea = document.getElementById("keywords");
+let antal = document.getElementById("antal");
+
+textarea.addEventListener('input', function() {
+  let lines = textarea.value.split('\n');
+  let amount = textarea.value !== "" ? lines.length : 0;
+  antal.textContent = "Antal af søgeord: " + lines.length;
+});
+
+  $('#category').select2({
+  dropdownParent: $('#keywordModal'),
+  placeholder: 'Select or create a category',
+  tags: true, // this enables the user to create new options
+  data: JSON.parse('<%- JSON.stringify(categories) %>').map(function(item) {
+  return { id: item, text: item };
+})
+});
+
+  $(document).ready(function() {
+    if (!$.fn.select2) {
+      console.error('Select2 is not loaded');
+      return;
+    }
+  
+    var $location = $('#location');
+    if (!$location.length) {
+      console.error('Location select field is not found');
+      return;
+    }
+
+  
+    $('#location').select2({
+  dropdownParent: $('#keywordModal'), // add this line
+  placeholder: 'Search for a location',
+  ajax: {
+    url: '/get-geolocations',
+    dataType: 'json',
+    delay: 250,
+    data: function (params) {
+      return {
+        q: params.term, // search term
+        page: params.page
+      };
+    },
+    processResults: function (data, params) {
+      return {
+        results: data
+      };
+    },
+    cache: true
+  },
+  minimumInputLength: 1
+});
+  });
+  </script>
 </body>
 </html>

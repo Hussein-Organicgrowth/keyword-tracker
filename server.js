@@ -4,6 +4,10 @@ const port = 3000;
 const mongoose = require("mongoose");
 const path = require('path');
 const bodyParser = require('body-parser');
+const fs = require('fs');
+const googleMaps = require('@google/maps');
+
+
 const Company = require('./src/models/companyModel');
 const findRankingForDomain = require('./src/utils/puppeteer');
 const getRank = require("./src/utils/getrank");
@@ -11,6 +15,7 @@ var util = require('util');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
+const crypto = require('crypto');
 
 
 
@@ -50,6 +55,55 @@ app.delete('/delete-company/:name', async (req, res) => {
   }
 });
 
+function generateUule(name) {
+  const nameBuffer = Buffer.from(name);
+  const lengthBuffer = Buffer.from([nameBuffer.length]);
+
+  const hash = crypto.createHash('md5');
+  hash.update(nameBuffer);
+  const hashBuffer = hash.digest();
+
+  const uuleBuffer = Buffer.concat([lengthBuffer, hashBuffer]);
+  const uule = uuleBuffer.toString('base64');
+
+  return `w+CAIQICI${uule}`;
+}
+
+const geolocationsFile = fs.readFileSync(path.join(__dirname, 'geolocations.json'), 'utf8');
+const countryCodesFile = fs.readFileSync(path.join(__dirname, 'country-codes.json'), 'utf8');
+const langCodesFile = fs.readFileSync(path.join(__dirname, 'lang-codes.json'), 'utf8');
+// Parse the JSON
+const geolocations = JSON.parse(geolocationsFile);
+const countryCodes = JSON.parse(countryCodesFile);
+const langCodes = JSON.parse(langCodesFile);
+// Convert each geolocation to a UULE and pass it to ScrapingRobot
+geolocations.forEach(geo => {
+  const uule = generateUule(geo.name);
+  // Pass the UULE to ScrapingRobot here
+});
+
+const googleMapsClient = googleMaps.createClient({
+  key: 'AIzaSyCOaD0K1EXLGvqin8Sqo9V5STfNa2yGAeo',
+  Promise: Promise
+});
+
+async function getGeolocationsFromGoogleMaps(q) {
+  const response = await googleMapsClient.places({
+    query: q,
+    language: 'dk'
+  }).asPromise();
+
+  if (response.status !== 200) {
+    throw new Error(`Google Maps API returned status code ${response.status}`);
+  }
+  
+  return response.json.results.map(place => {
+    return { 
+      id: place.place_id, // unique identifier for the place
+      text: place.name + ', ' + place.formatted_address // display name and address
+    };
+  });
+}
 
 
 app.get('/findRanking', async (req, res) => {
@@ -82,7 +136,16 @@ app.get('/keywords-view/:companyName', async (req, res) => {
   const company = await Company.findOne({ companyName: companyName });
   const categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))];
 
-  res.render('keywords-view', { company: company, languages: languages, categories: categories });
+  res.render('keywords-view', { company: company, languages: languages, categories: categories, geolocations: geolocations, countrycodes: countryCodes, langcodes: langCodes});
+});
+
+app.get('/get-geolocations', async function(req, res) {
+  const q = req.query.q;
+  const geolocations = await getGeolocationsFromGoogleMaps(q);
+  const geolocationsWithUule = geolocations.map(geo => {
+    return { id: geo.text, text: geo.text, uule: generateUule(geo.text) };
+  });
+  res.json(geolocationsWithUule);
 });
 
 app.post('/add-keyword/:companyName', async (req, res) => {
@@ -251,7 +314,19 @@ app.get('/get-placements/:companyName/:keyword', async function(req, res) {
   }
  
 });
+app.get('/get-keyword-data', async (req, res) => {
+  const keyword = req.query.keyword;
+  const companyName = req.query.companyName;
 
+  const company = await Company.findOne({ companyName: companyName });
+  const keywordObj = company.keywords.find(k => k.keyword === keyword);
+
+  if(keywordObj){
+    res.json(keywordObj.placements);
+  }else{
+    res.status(404).send('Keyword not found');
+  }
+});
 
 // Connect to the database
 const uri = "mongodb+srv://hussein:admin@keywords.ze8giui.mongodb.net/?retryWrites=true&w=majority";
