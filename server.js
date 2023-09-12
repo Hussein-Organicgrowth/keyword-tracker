@@ -7,10 +7,12 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const googleMaps = require('@google/maps');
 require('dotenv').config()
+const {OAuth2Client} = require('google-auth-library');
 
 const Company = require('./src/models/companyModel');
 const findRankingForDomain = require('./src/utils/puppeteer');
 const getRank = require("./src/utils/getrank");
+const getKeywordSearchVolume = require("./src/utils/googleads");
 var util = require('util');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
@@ -19,6 +21,8 @@ const crypto = require('crypto');
 
 const MONGO_URL = process.env.MONGO_URL;
 const GOOGLE_KEY = process.env.GOOGLE_KEY;
+
+
 
 
 // Route to handle form submission
@@ -155,7 +159,9 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   const keywords = req.body.keywords.split('\n');
   const category = req.body.category;
   const languageCode = req.body.language; // Get the selected language code
-  const date = new Date(); // get current date
+  const countryCode = req.body.country; // Get the selected country code
+  const uule = generateUule(req.body.location); // Get the selected UULE
+  const date = new Date(); // get current date // get current date
 
   // Validation checks
   if (!companyName) {
@@ -174,34 +180,30 @@ app.post('/add-keyword/:companyName', async (req, res) => {
 
   // Get the domain from the company object
   const domain = company.domain;
-  
-  // Loop through each keyword
   for (const keyword of keywords) {
-    // Get the ranking for the keyword
-    const rank = await getRank(keyword, domain);
-
-    // Create a new placement
+    const rank = await getRank(keyword, domain, languageCode, countryCode, uule);
+    const volume = await getKeywordSearchVolume(keyword, languageCode);
     const newPlacement = {
       date: date,
       rank: rank.position,
       url: rank.url
     };
 
-    // Create a new keyword object
     const newKeyword = {
       keyword: keyword,
       category: category,
-      language: languageCode,
+      languageCode: languageCode,
+      countryCode: countryCode,
+      uule: uule,
       url: rank.url, // Include the language code
       placements: [newPlacement], // include new placement in placements array
       lastChecked: date
     };
-
     company.keywords.push(newKeyword);
   }
 
   await company.save();
-  res.redirect('/keywords/' + companyName);
+ res.redirect('/keywords/' + companyName);
 });
 
 app.post('/delete-category/:companyName/:category', async (req, res) => {
@@ -283,7 +285,7 @@ app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
 
 
   // Get the ranking for the keyword
-  const rank = await getRank(keyword, company.domain);
+  const rank = await getRank(keyword, company.domain, keywordObj.languageCode, keywordObj.countryCode, keywordObj.uule);
 
   // Create a new placement
   const newPlacement = {
@@ -365,3 +367,61 @@ app.listen(port, () => {
 //    - js: This folder contains the JavaScript files for your application.
 
 // Note: This is just a suggested structure. You can modify it according to your needs.
+const languages = [
+  { name: 'Amharic', code: 'am' },
+  { name: 'Arabic', code: 'ar' },
+  { name: 'Basque', code: 'eu' },
+  { name: 'Bengali', code: 'bn' },
+  { name: 'English (UK)', code: 'en-GB' },
+  { name: 'Portuguese (Brazil)', code: 'pt-BR' },
+  { name: 'Bulgarian', code: 'bg' },
+  { name: 'Catalan', code: 'ca' },
+  { name: 'Cherokee', code: 'chr' },
+  { name: 'Croatian', code: 'hr' },
+  { name: 'Czech', code: 'cs' },
+  { name: 'Danish', code: 'da' },
+  { name: 'Dutch', code: 'nl' },
+  { name: 'English (US)', code: 'en' },
+  { name: 'Estonian', code: 'et' },
+  { name: 'Filipino', code: 'fil' },
+  { name: 'Finnish', code: 'fi' },
+  { name: 'French', code: 'fr' },
+  { name: 'German', code: 'de' },
+  { name: 'Greek', code: 'el' },
+  { name: 'Gujarati', code: 'gu' },
+  { name: 'Hebrew', code: 'iw' },
+  { name: 'Hindi', code: 'hi' },
+  { name: 'Hungarian', code: 'hu' },
+  { name: 'Icelandic', code: 'is' },
+  { name: 'Indonesian', code: 'id' },
+  { name: 'Italian', code: 'it' },
+  { name: 'Japanese', code: 'ja' },
+  { name: 'Kannada', code: 'kn' },
+  { name: 'Korean', code: 'ko' },
+  { name: 'Latvian', code: 'lv' },
+  { name: 'Lithuanian', code: 'lt' },
+  { name: 'Malay', code: 'ms' },
+  { name: 'Malayalam', code: 'ml' },
+  { name: 'Marathi', code: 'mr' },
+  { name: 'Norwegian', code: 'no' },
+  { name: 'Polish', code: 'pl' },
+  { name: 'Portuguese (Portugal)', code: 'pt-PT' },
+  { name: 'Romanian', code: 'ro' },
+  { name: 'Russian', code: 'ru' },
+  { name: 'Serbian', code: 'sr' },
+  { name: 'Chinese (PRC)', code: 'zh-CN' },
+  { name: 'Slovak', code: 'sk' },
+  { name: 'Slovenian', code: 'sl' },
+  { name: 'Spanish', code: 'es' },
+  { name: 'Swahili', code: 'sw' },
+  { name: 'Swedish', code: 'sv' },
+  { name: 'Tamil', code: 'ta' },
+  { name: 'Telugu', code: 'te' },
+  { name: 'Thai', code: 'th' },
+  { name: 'Chinese (Taiwan)', code: 'zh-TW' },
+  { name: 'Turkish', code: 'tr' },
+  { name: 'Urdu', code: 'ur' },
+  { name: 'Ukrainian', code: 'uk' },
+  { name: 'Vietnamese', code: 'vi' },
+  { name: 'Welsh', code: 'cy' }
+];

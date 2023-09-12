@@ -1,16 +1,17 @@
 const axios = require('axios');
 
 
-async function getRanking(keyword, domain){
+async function getRanking(keyword, domain, languageCode, countryCode, uule){
     const simplifiedDomain = getSimplifyUrl(domain);
+    console.log("CD " + countryCode );
     try {
       const response = await axios.post('https://api.scrapingrobot.com/', {
-        url: 'https://www.google.com',
+        url: 'https://www.google.com&uule='+uule,
         module: 'GoogleScraper',
         params: {
-          countryCode: 'dk',
-          proxyCountry: 'DK',
-          languageCode: 'da',
+          countryCode: countryCode.toLowerCase(),
+          proxyCountry: countryCode.toUpperCase(),
+          languageCode: languageCode,
           num: 100,
           query: keyword
         }

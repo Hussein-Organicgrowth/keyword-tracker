@@ -5,6 +5,8 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.11.0/css/flag-icons.min.css"/>
+  
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -160,6 +162,11 @@
   width: 100% !important;
   margin-top: 15px;
 }
+.clickable {
+  cursor: pointer;
+  color: blue; /* or any color that indicates it's clickable */
+  text-decoration: underline; /* optional */
+}
     
 </style>
 </head>
@@ -268,45 +275,45 @@
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="row">
-              <div class="col">
-                <label for="keywords">Keywords</label>
-                <textarea class="form-control" id="keywords" rows="3"></textarea>
-                <h3 id="antal">Antal af søgeord: 0</h3>
+          <form action="/add-keyword/<%= company.companyName %>" method="POST">
+            <div class="modal-body">
+              <div class="row">
+                <div class="col">
+                  <label for="keywords">Keywords</label>
+                  <textarea class="form-control" id="keywords" name="keywords" rows="3"></textarea>
+                  <h3 id="antal">Antal af søgeord: 0</h3>
+                </div>
+                <div class="col">
+                  <label for="category" class="mt-3">Category</label>
+                  <select class="form-control" id="category" name="category"></select>
+                  <label for="country">Country</label>
+                  <select class="form-control" id="country" name="country">
+                    <% countrycodes.forEach(function(country) { %>
+                      <option value="<%= country.code %>"><%= country.name %></option>
+                    <% }); %>
+                  </select>
+                  <label for="location" class="mt-3">Location (Optional)</label>
+                  <select class="form-control" id="location" name="location"></select>
 
-              </div>
-              <div class="col">
-                <label for="category" class="mt-3">Category</label>
-                <select class="form-control" id="category"></select>
-                <label for="country">Country</label>
-                <select class="form-control" id="country">
-                <% countrycodes.forEach(function(country) { %>
-                  <option value="<%= country.code %>"><%= country.name %></option>
-                <% }); %>
-              </select>
-
-              <label for="location" class="mt-3">Location (Optional)</label>
-              <select class="form-control" id="location"></select>
-
-
-              <label for="lang">Sprog</label>
-              <select class="form-control" id="lang">
-                <% langcodes.forEach(function(lang) { %>
-                  <option value="<%= lang.code %>"><%= lang.name %></option>
-                <% }); %>
-              </select>
-
+                  <label for="lang">Sprog</label>
+                  <select class="form-control" id="lang" name="language">
+                    <% langcodes.forEach(function(lang) { %>
+                      <option value="<%= lang.code %>"><%= lang.name %></option>
+                    <% }); %>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary">Save changes</button>
-          </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Add keyword</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
+
+
     <% var categories = [...new Set(company.keywords.map(keywordObj => keywordObj.category.toLowerCase().trim()))]; %>
     <% categories.forEach(function(category, index) { %>
       <div class="card mt-4">
@@ -325,7 +332,6 @@
     </button>
   </form>
           </h2>
-
         </div>
         <div id="collapse<%= index %>" class="collapse" aria-labelledby="heading<%= index %>" data-parent="#accordionExample">
           <div class="card-body">
@@ -333,7 +339,7 @@
                 <thead class="thead-light">
                   <tr>
                     <th scope="col">Keyword</th>
-                    <th scope="col">Language</th>
+                    <th scope="col">Location</th>
                     <th scope="col">URL</th>
                     <th scope="col">Last Checked</th>
                     <th scope="col">Placement</th>
@@ -344,9 +350,11 @@
                 <tbody>
                   <% company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() === category).forEach(function(keywordObj) { %>
                     <tr>
-                      <td class="keyword" data-keyword="<%= keywordObj.keyword %>" data-company="<%= company.companyName %>"><%= keywordObj.keyword %></td>
+                      <td class="keyword clickable" data-keyword="<%= keywordObj.keyword %>" data-company="<%= company.companyName %>"><%= keywordObj.keyword %></td>
 
-                      <td><%= keywordObj.language %></td>
+                      <td>
+                        <span class="fi fi-<%= keywordObj.countryCode.toLowerCase() %>"></span> <span ><%= keywordObj.countryCode %></span>
+                      </td>
                       <td><a href="<%= keywordObj.url %>" target="_blank">/<%= keywordObj.url.replace(company.domain, '') %></a></td>
                       <td><%= keywordObj.lastChecked.toDateString() %></td>
                       <td><%= keywordObj.placements[keywordObj.placements.length - 1].rank %></td>
@@ -391,7 +399,7 @@
     <% }); %>
   </div>
   <div class="modal fade" id="placementsModal" tabindex="-1" role="dialog" aria-labelledby="placementsModalLabel" aria-hidden="true">
-    <div class="modal-dialog large-modal" role="document">
+    <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="placementsModalLabel">Keyword Placements</h5>
@@ -407,6 +415,7 @@
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Url</th>
                 <th>Rank</th>
               </tr>
             </thead>
@@ -424,6 +433,15 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  $(document).ready(function() {
+  $('form').on('submit', function(e) {
+    var location = $('#location').val(); 
+    if (!location) {
+      e.preventDefault();
+      alert('Please select a location.');
+    }
+  });
+});
   var chart;
   Chart.register({
 id: 'backgroundColorPlugin',
@@ -462,13 +480,16 @@ var uniquePlacements = placements.filter(function(placement) {
 uniquePlacements.sort(function(a, b) {
  return new Date(b.date) - new Date(a.date);
 });
+var company = <%- JSON.stringify(company) %>;
 
 // Display unique placements
 uniquePlacements.forEach(function(placement) {
 var date = new Date(placement.date);
+let url = placement.url;
+url = "/" + url.replace(company.domain, "");
 var dateString = date.toLocaleDateString();
 var timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // 24-hour format without seconds
-$('#placementsTable tbody').append('<tr><td>' + dateString + ' ' + timeString + '</td><td>' + placement.rank + '</td></tr>');
+$('#placementsTable tbody').append('<tr><td>' + dateString + ' ' + timeString + '</td><td><a href="' + placement.url + '">' + url + '</a></td><td>' + placement.rank + '</td></tr>');
 });
 
  // Create arrays of dates and ranks

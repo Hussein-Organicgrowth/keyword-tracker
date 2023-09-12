@@ -10,7 +10,9 @@ const PlacementSchema = new Schema({
 const KeywordSchema = new Schema({
   keyword: String,
   category: String,
-  language: String,
+  languageCode: String,
+  countryCode: String,
+  uule: String,
   url: String, // Added language field
   placements: [PlacementSchema],
   lastChecked: Date,
