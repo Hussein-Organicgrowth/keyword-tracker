@@ -3,7 +3,7 @@
 <head>
   <title>Company Tracker</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-
+  
 </head>
 <body>
   <div class="container mt-5">
@@ -37,7 +37,7 @@
       <tbody>
         <% companies.forEach(function(company) { %>
           <tr>
-            <td><a href="/keywords/<%= company.companyName %>"><%= company.companyName %></a></td>
+            <td><a href="/keywords-view/<%= company.companyName %>"><%= company.companyName %></a></td>
             <td><%= company.domain %></td>
             <td><%= company.keywords.length %></td>
             <td>

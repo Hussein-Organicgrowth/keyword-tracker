@@ -6,6 +6,7 @@ const { ElementHandle } = require('puppeteer');  // Import ElementHandle from 'p
 puppeteer.use(StealthPlugin());
 
 async function getKeywordSearchVolume(keyword, languageCode){
+  console.log("COUNTRY: " + languageCode);
     const browser = await puppeteer.launch({
         //  args: ['--no-sandbox', `--proxy-server=${proxyServer}`],
           headless: true
@@ -31,10 +32,22 @@ await frame.click('button.loadable');
 await frame.waitForSelector('#keywords tbody tr:first-child td:first-child');
 
 let value = await frame.$eval('#keywords tbody tr:first-child td:first-child', el => el.textContent);
+
+
 console.log(value);
-let volume = await frame.$eval('#keywords tbody tr:first-child td:nth-child(4)', el => el.textContent);
-console.log(volume);
-return volume;
+
+
+try{
+  await frame.waitForSelector('#keywords tbody tr:first-child td:nth-child(4)');
+  let volume = await frame.$eval('#keywords tbody tr:first-child td:nth-child(4)', el => el.textContent);
+  await browser.close();
+  return volume;
+}catch(error){
+  await browser.close();
+  return 0;
+}
+
+
 
 }
 

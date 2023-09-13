@@ -61,6 +61,30 @@ app.delete('/delete-company/:name', async (req, res) => {
   }
 });
 
+
+app.post('/edit-company/:name', async (req, res) => {
+  const { name } = req.params;
+  const { companyName, domain } = req.body;
+
+  try {
+    const company = await Company.findOne({ companyName: name });
+
+      if (!company) {
+          return res.status(404).json({ error: 'Company not found' });
+      }
+
+      company.companyName = companyName;
+      company.domain = domain;
+
+      await company.save();
+
+      res.json({ message: 'Company updated successfully' });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'An error occurred while updating the company' });
+  }
+});
+
 function generateUule(name) {
   const nameBuffer = Buffer.from(name);
   const lengthBuffer = Buffer.from([nameBuffer.length]);
@@ -181,8 +205,8 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   // Get the domain from the company object
   const domain = company.domain;
   for (const keyword of keywords) {
+    const volume = await getKeywordSearchVolume(keyword, countryCode);
     const rank = await getRank(keyword, domain, languageCode, countryCode, uule);
-    const volume = await getKeywordSearchVolume(keyword, languageCode);
     const newPlacement = {
       date: date,
       rank: rank.position,
@@ -195,7 +219,8 @@ app.post('/add-keyword/:companyName', async (req, res) => {
       languageCode: languageCode,
       countryCode: countryCode,
       uule: uule,
-      url: rank.url, // Include the language code
+      url: rank.url,
+      volume: volume, // Include the language code
       placements: [newPlacement], // include new placement in placements array
       lastChecked: date
     };
@@ -203,7 +228,7 @@ app.post('/add-keyword/:companyName', async (req, res) => {
   }
 
   await company.save();
- res.redirect('/keywords/' + companyName);
+ res.redirect('/keywords-view/' + companyName);
 });
 
 app.post('/delete-category/:companyName/:category', async (req, res) => {
@@ -228,7 +253,19 @@ app.get('/', async (req, res) => {
   try {
     const companies = await Company.find({});
     // Render index.ejs with the companies data
-    res.render('index', { companies: companies });
+    res.render('forside', { companies: companies });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('An error occurred while fetching the companies');
+  }
+});
+
+app.get('/forside', async (req, res) => {
+  // Fetch the companies from the database
+  try {
+    const companies = await Company.find({});
+    // Render index.ejs with the companies data
+    res.render('forside', { companies: companies });
   } catch (err) {
     console.error(err);
     res.status(500).send('An error occurred while fetching the companies');
@@ -264,8 +301,6 @@ app.post('/delete-keyword/:companyName/:keyword', async (req, res) => {
 app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
   const companyName = req.params.companyName;
   const keyword = req.params.keyword;
-  console.log(keyword);
-  console.log(companyName);
   const date = new Date(); // get current date
 
   const company = await Company.findOne({ companyName: companyName });
@@ -302,15 +337,15 @@ app.post('/update-keyword/:companyName/:keyword', async (req, res) => {
   await company.markModified('keywords');
   await company.save();
 
-  res.redirect('/keywords/' + companyName);
+  res.redirect('/keywords-view/' + companyName);
 });
 
 app.get('/get-placements/:companyName/:keyword', async function(req, res) {
   var companyName = req.params.companyName;
   var keyword = req.params.keyword;
   const company = await Company.findOne({ companyName: companyName });
-
-  const keywordObj = company.keywords.find(k => k.keyword === keyword);
+  
+  const keywordObj = company.keywords.find(k => k.keyword.trim() === keyword.trim());
   if(keywordObj){
     res.json(keywordObj.placements);
   }else{

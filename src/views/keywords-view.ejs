@@ -263,6 +263,11 @@
         </div>
       </div>
     </div>
+    <div id="loadingScreen" style="display: none; position: fixed; z-index: 999; height: 2em; width: 2em; overflow: show; margin: auto; top: 0; left: 0; bottom: 0; right: 0;">
+      <div class="spinner-border text-primary" role="status">
+          <span class="sr-only">Loading...</span>
+      </div>
+  </div>
     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#keywordModal">
       Add Keyword
     </button>
@@ -275,7 +280,7 @@
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <form action="/add-keyword/<%= company.companyName %>" method="POST">
+          <form id="addKeywordForm" action="/add-keyword/<%= company.companyName %>" method="POST">
             <div class="modal-body">
               <div class="row">
                 <div class="col">
@@ -325,7 +330,7 @@
             <% 
       var keywordCount = company.keywords.filter(keywordObj => keywordObj.category.toLowerCase().trim() === category).length;
     %>
-    <span>| <%= keywordCount %> antal af søgeord</span>
+    <span>| <%= keywordCount %> søgeord</span>
     <form class="btn btn-danger float-right" action="/delete-category/<%= company.companyName %>/<%= category %>" method="POST">
     <button class="btn btn-danger float-right" type="submit">
       <i class="fas fa-trash"></i> 
@@ -343,6 +348,7 @@
                     <th scope="col">URL</th>
                     <th scope="col">Last Checked</th>
                     <th scope="col">Placement</th>
+                    <th scope="col">Volume</th>
                     <th scope="col">Rank changes</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -355,9 +361,10 @@
                       <td>
                         <span class="fi fi-<%= keywordObj.countryCode.toLowerCase() %>"></span> <span ><%= keywordObj.countryCode %></span>
                       </td>
-                      <td><a href="<%= keywordObj.url %>" target="_blank">/<%= keywordObj.url.replace(company.domain, '') %></a></td>
+                      <td><a href="<%= keywordObj.url %>" target="_blank">/<%= keywordObj.url.replace('www.', '').replace(company.domain, '') %></a></td>
                       <td><%= keywordObj.lastChecked.toDateString() %></td>
                       <td><%= keywordObj.placements[keywordObj.placements.length - 1].rank %></td>
+                      <td><%= keywordObj.volume %></td>
                       <td>
                         <% 
                         var placements = keywordObj.placements;
@@ -433,14 +440,23 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+
+$('#addKeywordForm').on('submit', function() {
+    $('#loadingScreen').show();
+});
+
   $(document).ready(function() {
-  $('form').on('submit', function(e) {
+  $('#keywordModal').on('shown.bs.modal', function () {
+
     var location = $('#location').val(); 
     if (!location) {
       e.preventDefault();
       alert('Please select a location.');
     }
+
+
   });
+
 });
   var chart;
   Chart.register({
@@ -456,8 +472,8 @@ beforeDraw: function(chart) {
 });
   $(document).ready(function() {
     $('.keyword').click(function() {
-      var keyword = $(this).data('keyword');
-      var companyName = $(this).data('company');
+      var keyword = $(this).data('keyword').trim();
+      var companyName = $(this).data('company').trim();
       $.ajax({
         url: '/get-placements/' + encodeURIComponent(companyName) + '/' + encodeURIComponent(keyword),
         method: 'GET',
@@ -486,10 +502,9 @@ var company = <%- JSON.stringify(company) %>;
 uniquePlacements.forEach(function(placement) {
 var date = new Date(placement.date);
 let url = placement.url;
-url = "/" + url.replace(company.domain, "");
 var dateString = date.toLocaleDateString();
 var timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // 24-hour format without seconds
-$('#placementsTable tbody').append('<tr><td>' + dateString + ' ' + timeString + '</td><td><a href="' + placement.url + '">' + url + '</a></td><td>' + placement.rank + '</td></tr>');
+$('#placementsTable tbody').append('<tr><td>' + dateString + ' ' + timeString + '</td><td><a href="' + placement.url + '">' + "/" + url.replace("www.", "").replace(company.domain, "") + '</a></td><td>' + placement.rank + '</td></tr>');
 });
 
  // Create arrays of dates and ranks

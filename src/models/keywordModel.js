@@ -13,7 +13,8 @@ const KeywordSchema = new Schema({
   languageCode: String,
   countryCode: String,
   uule: String,
-  url: String, // Added language field
+  url: String,
+  volume: String, // Added language field
   placements: [PlacementSchema],
   lastChecked: Date,
 });
